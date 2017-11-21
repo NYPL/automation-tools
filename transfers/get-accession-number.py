@@ -3,13 +3,14 @@
 from __future__ import print_function
 
 import sys
+import re
 
 
 def main(dirname):
     # Expecting a directory name like sometext---dc.identifier---accession
-    parts = dirname.rsplit('---', 1)
+    collection_id = re.match('M\d+', dirname)
     try:
-        print('"' + parts[1] + '"')  # Accession ID must be quoted
+        print('"' + collection_id.group(0) + '"')  # Accession ID must be quoted
     except Exception:
         print('None')
 
