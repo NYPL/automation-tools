@@ -29,87 +29,41 @@ The Automation Tools project is a set of python scripts, that are designed to au
 Installation
 ------------
 
-* Checkout or link the code in this repo to `/usr/lib/archivematica/automation-tools`
-* Create virtualenv `/usr/share/python/automation-tools` and pip install requirements there
-* Create directories `/var/log/archivematica/automation-tools` and `/var/archivematica/automation-tools` owned by user `archivematica`, for log/database/PID files.
-* Create directory `/etc/archivematica/automation-tools` and add configuration files there. Files in the `etc/` directory of this repository can be used as an example (also see below for more about configuration)
-
-Automated transfers
--------------------
-
-`transfers/transfer.py` is used to prepare transfers, move them into the pipelines processing location, and take actions when user input is required.
-Only one transfer is sent to the pipeline at a time, the scripts wait until the current transfer is resolved (failed, rejected or stored as an AIP) before automatically starting the next available transfer.
-
-### Configuration
-
-Suggested deployment is to use cron to run a shell script that runs the automate transfer tool. Example shell script (for example in `/etc/archivematica/automation-tools/transfer-script.sh`):
-
+* Copy your git ssh credentials to the Archivematica instance and clone this repository
 ```
-#!/bin/bash
+sudo git clone git@github.com:NYPL/automation-tools /usr/lib/archivematica/automation-tools
+```
+* Switch to the correct branch for the pipeline
+```
+git checkout <branch>
+```
+* Install required python packages
+```
+virtualenv /usr/share/python/automation-tools
+cd /usr/share/python/automation-tools
+source bin/activate
+pip install -r /usr/lib/archivematica/automation-tools/requirements.txt
+```
+* Create correct folders with expected ownership
+```
+install -o archivematica -g archivematica /var/log/archivematica/automation-tools
+install -o archivematica -g archivematica /var/archivematica/automation-tools
+install -o archivematica -g archivematica /etc/archivematica/automation-tools
+```
+* Copy pipeline-specific configuration to expected location
+```
+cp /usr/lib/archivematica/automation-tools/configuration /etc/archivematica/automation-tools
+```
+** If there is no `configuration` folder, contact the owner of this repo to request the required permissions.
+* Test the installation of the tools
+```
 cd /usr/lib/archivematica/automation-tools/
 /usr/share/python/automation-tools/bin/python -m transfers.transfer --user <user> --api-key <apikey> --ss-user <user> --ss-api-key <apikey> --transfer-source <transfer_source_uuid> --config-file <config_file>
 ```
-
-(Note that the script calls the transfers script as a module using python's `-m` flag, this is required due to the use of relative imports in the code)
-
-The script can be run from a shell window like:
-
-```
-user@host:/etc/archivematica/automation-tools$ sudo -u archivematica ./transfer-script.sh
-```
-
-It is suggested to run the script through a crontab entry for user archivematica (to avoid the need to repeatedly invoke it manually):
-
+* Create a crontab entry to schedule a repeated runs of the script.
 ```
 */5 * * * * /etc/archivematica/automation-tools/transfer-script.sh
 ```
-
-When running, automated transfers stores its working state in a sqlite database.  It contains a record of all the transfers that have been processed.  In a testing environment, deleting this file will cause the tools to re-process any and all folders found in the Transfer Source Location.
-
-#### Parameters
-
-The `transfers.py` script can be modified to adjust how automated transfers work.  The full set of parameters that can be changed are:
-
-* `-u USERNAME, --user USERNAME` [REQUIRED]: Username of the Archivematica dashboard user to authenticate as.
-* `-k KEY, --api-key KEY` [REQUIRED]: API key of the Archivematica dashboard user.
-* `--ss-user USERNAME` [REQUIRED]: Username of the Storage Service user to authenticate as. Storage Service 0.8 and up requires this; earlier versions will ignore any value provided.
-* `--ss-api-key KEY` [REQUIRED]: API key of the Storage Service user. Storage Service 0.8 and up requires this; earlier versions will ignore any value provided.
-* `-t UUID, --transfer-source UUID`: [REQUIRED] Transfer Source Location UUID to fetch transfers from. Check the next section for more details on this field.
-* `--transfer-path PATH`: Relative path within the Transfer Source. Default: ""
-* `--depth DEPTH, -d DEPTH`: Depth to create the transfers from relative to the transfer source location and path. Default of 1 creates transfers from the children of transfer-path.
-* `--am-url URL, -a URL`:Archivematica URL. Default: http://127.0.0.1
-* `--ss-url URL, -s URL`: Storage Service URL. Default: http://127.0.0.1:8000
-* `--transfer-type TYPE`: Type of transfer to start. One of: 'standard' (default), 'unzipped bag', 'zipped bag', 'dspace'.
-* `--files`: If set, start transfers from files as well as folders.
-* `--hide`: If set, hides the Transfer and SIP once completed.
-* `-c FILE, --config-file FILE`: config file containing file paths for log/database/PID files. Default: log/database/PID files stored in the same directory as the script (not recommended for production)
-* `-v, --verbose`: Increase the debugging output. Can be specified multiple times, e.g. `-vv`
-* `-q, --quiet`: Decrease the debugging output. Can be specified multiple times, e.g. `-qq`
-* `--log-level`: Set the level for debugging output. One of: 'ERROR', 'WARNING', 'INFO', 'DEBUG'. This will override `-q` and `-v`
-
-#### Getting Correct UUIDs and Setting Processing Rules
-
-The easiest way to configure the tasks that automation-tools will run is by using the dashboard:
-
-1. Go to Administration > Processing Configuration and choose the options you wish to use.
-
-2. Save the configuration on the form.
-
-3. Copy the processing configuration file from `/var/archivematica/sharedDirectory/sharedMicroServiceTasksConfigs/processingMCPConfigs/defaultProcessingMCP.xml` on the Archivematica host machine to the `transfers/` directory of your automation-tools installation location.
-
-The automation-tools command-line also relies on installation-specific UUIDs. To obtain the transfer source UUID for script invocation, visit the 'Transfer Source' tab in the Archivematica Storage Space web dashboard. If a row is marked as a transfer souce its UUID value will be valid as a transfer source argument.
-
-#### Getting API keys
-
-To get the Archivematica API key, log in to Archivematica as the user you wish to authenticate as.
-From the dashboard, click your username in the top right corner, then select 'Your profile'.
-The API key will be displayed at the bottom of the page.
-
-To get the Storage Service API key, log in to the Storage Service as the user you wish to authenticate as.
-From the dashboard, go to Administration > Users and select 'Edit' for the user you want the key for.
-The API key will be displayed at the bottom of the page.
-Storage Service versions earlier than 0.8.x do not require an API key, and will not provide one.
-In that case, fill in `--ss-user` and `--ss-api-key` with stub data, since those parameters are required by automated transfers.
 
 ### Hooks
 
@@ -201,8 +155,3 @@ You may need to set up multiple automated transfer instances, for example if req
 `<config_file_1>` and `<config_file_2>` should specify different file names for db/PID/log files. See transfers.conf and transfers-2.conf in etc/ for an example
 
 In case different hooks are required for each instance, a possible approach is to checkout a new instance of the automation tools, for example in `/usr/lib/archivematica/automation-tools-2`
-
-Related Projects
-----------------
-
-* [automation-audit](https://github.com/finoradin/automation-audit): an interface for auditing and managing Archivematica's automation-tools.
