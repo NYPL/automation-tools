@@ -1,3 +1,4 @@
 [submodule "configuration"]
 	path = configuration
 	url = git@github.com:NYPL/automation-tools-conf
+	branch = diskImages
