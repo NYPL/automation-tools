@@ -24,38 +24,45 @@ The Automation Tools project is a set of python scripts, that are designed to au
 Installation
 ------------
 
-* Copy your git ssh credentials to the Archivematica instance and clone this repository
+1. Create github ssh credentials on the Archivematica instance and clone this repository
 ```
-sudo git clone git@github.com:NYPL/automation-tools /usr/lib/archivematica/automation-tools
+sudo mkdir /usr/lib/archivematica/automation-tools
+sudo chmod 777 /usr/lib/archivematica/automation-tools
+git clone --recursive git@github.com:NYPL/automation-tools /usr/lib/archivematica/automation-tools
 ```
-* Switch to the correct branch for the pipeline
+2. Switch to the correct branch for the pipeline and check to make sure the configurations were downloaded.
+  * If there is no `configuration` folder, contact the owner of this repo to request the required permissions.
 ```
+cd /usr/lib/archivematica/automation-tools
 git checkout <branch>
+ls configuration
 ```
-* Install required python packages
+3. Install required python packages
 ```
-virtualenv /usr/share/python/automation-tools
+sudo virtualenv /usr/share/python/automation-tools
 cd /usr/share/python/automation-tools
 source bin/activate
 pip install -r /usr/lib/archivematica/automation-tools/requirements.txt
+deactivate
 ```
-* Create correct folders with expected ownership
+4. Create correct folders with expected ownership
 ```
-install -o archivematica -g archivematica /var/log/archivematica/automation-tools
-install -o archivematica -g archivematica /var/archivematica/automation-tools
-install -o archivematica -g archivematica /etc/archivematica/automation-tools
+sudo install -d -o archivematica -g archivematica /var/log/archivematica/automation-tools
+sudo install -d -o archivematica -g archivematica /var/archivematica/automation-tools
+sudo install -d -o archivematica -g archivematica /etc/archivematica/automation-tools
 ```
-* Copy pipeline-specific configuration to expected location
+5. Copy pipeline-specific configuration to expected location
 ```
-cp /usr/lib/archivematica/automation-tools/configuration /etc/archivematica/automation-tools
+sudo cp /usr/lib/archivematica/automation-tools/configuration/* /etc/archivematica/automation-tools
+sudo chown -R archivematica:archivematica /etc/archivematica/automation-tools/
 ```
-** If there is no `configuration` folder, contact the owner of this repo to request the required permissions.
-* Test the installation of the tools
+
+6. Test the installation of the tools (/etc/archivematica/automation-tools/transfer-script.sh should contain a completed version)
 ```
 cd /usr/lib/archivematica/automation-tools/
-/usr/share/python/automation-tools/bin/python -m transfers.transfer --user <user> --api-key <apikey> --ss-user <user> --ss-api-key <apikey> --transfer-source <transfer_source_uuid> --config-file <config_file>
+/usr/share/python/automation-tools/bin/python -m transfers.transfer --user <user> --api-key <apikey> --ss-user <user> --ss-api-key <apikey> --ss-url <url> --transfer-source <transfer_source_uuid> --config-file /etc/archivematica/automation-tools/transfers.conf
 ```
-* Create a crontab entry to schedule a repeated runs of the script.
+7. Create a crontab entry to schedule a repeated runs of the script.
 ```
 */5 * * * * /etc/archivematica/automation-tools/transfer-script.sh
 ```
