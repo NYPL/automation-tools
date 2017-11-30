@@ -11,6 +11,9 @@ The Automation Tools project is a set of python scripts, that are designed to au
 
 
 - [Installation](#installation)
+- [Updating](#updating)
+  - [Making updates](#making-updates)
+  - [Deploying updates](#deploying-updates)
 - [Customizing](#customizing)
   - [Hooks](#hooks)
     - [get-accession-id](#get-accession-id)
@@ -66,6 +69,67 @@ cd /usr/lib/archivematica/automation-tools/
 ```
 */5 * * * * /etc/archivematica/automation-tools/transfer-script.sh
 ```
+
+Updating
+------------
+NYPL stores the configuration portions of automation-tools in a private repo and references them here as a submodule. In addition, each pipeline is stored as a separate branch. Updates to these repositories should be made in the following order:
+1. automation-tools-conf/master
+2. automation-tools-conf/pipeline-branch
+3. automation-tools/master
+4. automation-tools/pipeline-branch
+
+
+### Making updates
+In order to update all of the repos and branches, follow this procedure.
+
+1. Fetch any updates
+```
+git pull
+```
+2. Make and commit changes.
+3. If on the master branch, rebase the pipeline branches.
+```
+git checkout <pipeline-branch>
+git rebase master
+```
+4. Push the changes.
+```
+git push
+```
+5. If you made changes to the automation-tools directory, change to the automation-tools directory.
+```
+cd /path/to/automation-tools
+```
+6. For each updated branch, pull the updates for the submodule and commit the change.
+```
+git checkout <branch-name>
+git submodule update --recursive --remote
+git add configuration
+git commit -m 'merge updated configuration'
+```
+7. Push the changes.
+```
+git push
+```
+
+### Deploying updates
+
+On the Archivematica instance,
+1. Change to the automation-tools directory
+```
+cd /usr/lib/archivematica/automation-tools
+```
+2. Fetch all changes
+```
+git pull --recurse-submodules
+git submodule update --recursive --remote
+```
+3. Copy pipeline-specific configuration to expected location
+```
+sudo cp /usr/lib/archivematica/automation-tools/configuration/* /etc/archivematica/automation-tools
+sudo chown -R archivematica:archivematica /etc/archivematica/automation-tools/
+```
+
 
 Customizing
 ------------
